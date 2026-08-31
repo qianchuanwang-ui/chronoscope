@@ -1,12 +1,14 @@
 import os
 import io
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import matplotlib.pyplot as plt
-import pysweph as swe  # 新しいエンジンに切り替え！
+
+# 🌸 100%純粋Pythonの最強天体計算エンジン(skyfield)を読み込み
+from skyfield.api import Loader
 
 app = FastAPI()
 
@@ -18,12 +20,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 天体データのダウンロード（Render上でも高速に動くようにキャッシュを設定）
+load = Loader('/tmp/skyfield-data')
+ts = load.timescale()
+eph = load('de421.bsp') # NASAの標準惑星軌道データ
+
+# 12星座の境界（黄経）
+SIGNS = ["牡羊座", "牡牛座", "双子座", "蟹座", "獅子座", "乙女座", "天秤座", "蠍座", "射手座", "山羊座", "水瓶座", "魚座"]
+
 VENUS_SIGN_COSMETICS = [
     {"sign": "牡羊座", "cosme": "ちゅるんとした透け感シアーレッドのリップティントカラー💄", "color": "ストロベリーピンク"},
     {"sign": "牡牛座", "cosme": "お肌をふんわり上品に見せるラベンダーパウダーレース🎀", "color": "メルティベージュ"},
     {"sign": "双子座", "cosme": "目元がうるうる輝く微細パールの入ったリキッドアイシャドウグリッター✨", "color": "ピスタチオグリーン"},
     {"sign": "蟹座", "cosme": "内側からぽわっと上気したような練りチークピーチピンク🍑", "color": "ミルクティピンク"},
     {"sign": "獅子座", "cosme": "瞬きするたびドキッとさせる艶めきゴールドラメシャドウクローバー👑", "color": "サンセットオレンジ"},
+    {"sign": "乙女座", "cosme": "素肌感を美しく引き立てるナチュラルでピュアな透明感パウダークリア", "color": "ピュアホワイト"},
     {"sign": "天秤座", "cosme": "どんなお洋服にもマッチする王道のうるツヤ大人ピンクベージュリップミント", "color": "ローズピンク"},
     {"sign": "蠍座", "cosme": "ちょっぴりミステリアスで大人っぽい深みボルドーのネイルマスカラ🔮", "color": "ヴィンテージワイン"},
     {"sign": "射手座", "cosme": "お顔全体をパッと明るく見せてくれるビタミンカラーのハイライターキャンディ", "color": "シトラスイエロー"},
@@ -36,7 +47,7 @@ SWEET_MEANINGS = {
     ("Transit 太陽", "Natal 太陽"): "🎂Myニューイヤーのはじまり🎂 あなたという存在にスポットライトが当たる特別な日！いつもよりちょっぴり主役気分で、新しい目標を宣言しちゃおう！",
     ("Transit 太陽", "Natal 水星"): "おしゃべりスイッチONの日📣 あなたの言葉がみんなの心にすーっと届くよ。大切な連絡や、SNSの発信、ブログの更新をするなら今日が絶対おすすめ！",
     ("Transit 太陽", "Natal 金星"): "🧸愛されヒロインモード🧸 あなたの「可愛い魅力」がじわじわ溢れ出ちゃう日！すれ違う人が思わず振り返るような、無敵のオーラをまとえるよ。ご褒ベを買っちゃおう♪",
-    ("Transit 太陽", "Natal 火星"): "エネルギー満タン！やる気スイッチ💥 ずっと後回しにしていたことに、楽しく一歩を踏み出せる日。今日のあなたなら、どんな壁も「えいっ！」って乗り越えられちゃうよ！",
+    ("Transit 太陽", "Natal 火星"): "エネルギー満タン！やる気スイッチ💥 ずっと後回しにしていたことに、楽しく一歩を踏出せる日。今日のあなたなら、どんな壁も「えいっ！」って乗り越えられちゃうよ！",
     ("Transit 太陽", "Natal 木星"): "🌈神さまからのプチギフト🌈 ラッキーなことがトントン拍子で起こりそうな予感。笑顔でいるだけで、ハッピーな引き寄せが向こうからやってくるよ♪",
     ("Transit 金星", "Natal 太陽"): "🦋きゅん活アップデート🦋 あなたの「好き！」という気持ちが満たされるご褒美デー。お気に入りのコスメやお洋服を身にまとって、お出かけしてみてね！",
     ("Transit 金星", "Natal 水星"): "お耳が幸せになる日ロリポップ 心地いい音楽を聴いたり、推しの動画を見たり、友達とウキウキするおしゃべりを楽しんで。可愛いアイデアも浮かびそう！",
@@ -53,15 +64,12 @@ SWEET_MEANINGS = {
     ("Transit 木星", "Natal 水星"): "🚀才能の扉がパカッと開く🚀 あなたがこれまで頑張ってきたことや、得意なことがたくさんの人に認められるとき。自信を持って周りにアピールしてみてね！",
     ("Transit 土星", "Natal 太陽"): "🧸お守りモードの土台づくり🧸 これからのあなたをもっと強く、素敵にするための「心の整理整頓」がおこる日。焦らずゆっくり、自分のペースを愛してあげてね。",
     ("Transit 土星", "Natal 金星"): "💎永遠のタカラモノを見つける日💎 一時のときめきではなく、これからもずっとずっと大切にしていきたい「本物の愛」や「絆」を、時間をかけてじっくり育てる落ち着いたパワーが流れています。",
-    ("Transit 天王星", "Natal 太陽"): "🔮新しいわたしに生まれ変わる予感🔮 思いがけないハッピーな変化が舞い込んでくる日。今までのこだわりを「ぽいっ」と手放すと、もっと素敵なハッピーが飛び込んでくるよ！",
-    ("Transit 海王星", "Natal 金星"): "🎡魔法にかけられた夢の国🎡 まるで映画やファンタジーの世界にいるような、ロマンチックな妄想やインスピレーションが広がる日。アートや可愛い世界観にたっぷり浸ってね。",
-    ("Transit 冥王星", "Natal 太陽"): "🌟大逆転！奇跡のシナリオ🌟 もやもやしていた現実がガラッと180度変わるような、パワフルな再生のエネルギー。ピンチに見えても、それは大幸運へ向かうためのステップだから大丈夫！",
 }
 
-PLANETS = {
-    "太陽": swe.SUN, "水星": swe.MERCURY, "金星": swe.VENUS, 
-    "火星": swe.MARS, "木星": swe.JUPITER, "土星": swe.SATURN,
-    "天王星": swe.URANUS, "海王星": swe.NEPTUNE, "冥王星": swe.PLUTO
+PLANET_OBJECTS = {
+    "太陽": eph['sun'], "水星": eph['mercury'], "金星": eph['venus'], "火星": eph['mars'],
+    "木星": eph['jupiter barycenter'], "土星": eph['saturn barycenter'],
+    "天王星": eph['uranus barycenter'], "海王星": eph['neptune barycenter'], "冥王星": eph['pluto barycenter']
 }
 
 class NatalInput(BaseModel):
@@ -71,35 +79,47 @@ class NatalInput(BaseModel):
     hour: int
     minute: int
 
+def get_lon(body, time):
+    astrometric = eph['earth'].at(time).observe(body)
+    lat, lon, distance = astrometric.ecliptic_latlon()
+    return lon.degrees
+
 def get_lucky_cosmetic():
-    now = datetime.now()
-    et = swe.julday(now.year, now.month, now.day, 12.0)
-    res = swe.calc_ut(et, swe.VENUS)
-    lon = res
-    sign_idx = int(lon // 30)
-    if sign_idx >= 12: sign_idx = 11
-    return VENUS_SIGN_COSMETICS[sign_idx]
+    now = datetime.now(timezone.utc)
+    t = ts.utc(now.year, now.month, now.day, now.hour, now.minute)
+    v_lon = get_lon(eph['venus'], t)
+    
+    sign_idx = int(v_lon // 30) % 12
+    jp_sign = SIGNS[sign_idx]
+    
+    for c in VENUS_SIGN_COSMETICS:
+        if c["sign"] == jp_sign:
+            return c
+    return VENUS_SIGN_COSMETICS[0]
 
 @app.post("/api/fortune")
 def get_fortune(birth: NatalInput):
     try:
         lucky = get_lucky_cosmetic()
-        birth_et = swe.julday(birth.year, birth.month, birth.day, birth.hour + birth.minute/60.0)
+        
+        jst = timezone(timedelta(hours=9))
+        birth_dt = datetime(birth.year, birth.month, birth.day, birth.hour, birth.minute, tzinfo=jst)
+        birth_utc = birth_dt.astimezone(timezone.utc)
+        t_birth = ts.utc(birth_utc.year, birth_utc.month, birth_utc.day, birth_utc.hour, birth_utc.minute)
+        
         natal_positions = {}
-        for name, code in PLANETS.items():
-            res = swe.calc_ut(birth_et, code)
-            natal_positions[name] = res
+        for name, body in PLANET_OBJECTS.items():
+            natal_positions[name] = get_lon(body, t_birth)
 
-        start_date = datetime.now()
+        start_date = datetime.now(timezone.utc)
         hits = []
         
         for i in range(180):
             current_date = start_date + timedelta(days=i)
-            et = swe.julday(current_date.year, current_date.month, current_date.day, 12.0)
+            t_current = ts.utc(current_date.year, current_date.month, current_date.day, 12, 0)
             
-            for t_name, t_code in PLANETS.items():
-                t_res = swe.calc_ut(et, t_code)
-                t_pos = t_res
+            for t_name, t_body in PLANET_OBJECTS.items():
+                t_pos = get_lon(t_body, t_current)
                 
                 for n_name, n_pos in natal_positions.items():
                     diff = abs(t_pos - n_pos)
@@ -126,7 +146,7 @@ def get_fortune(birth: NatalInput):
         if hits:
             dates = [h["date"] for h in hits]
             labels = [h["title"] for h in hits]
-            ax.plot(dates, [1]*len(dates), "o", color="#FF94B7", markersize=12)
+            ax.plot(dates, [1]*len(dates), "o", color="#FF94B7", markersize=12) # ここを修正しました！
             for idx, label in enumerate(labels):
                 ax.annotate(label, (dates[idx], 1), textcoords="offset points", 
                             xytext=(0,15), ha='center', color="#555555", fontsize=9)

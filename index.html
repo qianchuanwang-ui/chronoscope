@@ -131,9 +131,7 @@
             };
 
             try {
-                // ⚠️【超重要！】
-                // Renderの公開が終わったら、下の「http://127.0.0.1:8000」の部分を
-                // あなたのRenderのURL（https://〜.onrender.com）に丸ごと書き換えてくださいね！
+                // ⚠️【Render公開後にここを書き換えます】
                 const response = await fetch('http://127.0.0', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -175,7 +173,7 @@
             }
         }
 
-        function shareToX() {
+        fnction shareToX() {
             const hashtags = "CosmicCandy,星占い";
             const shareUrl = `https://twitter.com{encodeURIComponent(latestFortuneText)}&hashtags=${encodeURIComponent(hashtags)}`;
             window.open(shareUrl, '_blank');
