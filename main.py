@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import matplotlib.pyplot as plt
-import swisseph as swe
+import pysweph as swe  # 新しいエンジンに切り替え！
 
 app = FastAPI()
 
@@ -17,9 +17,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-EPHE_PATH = os.getenv("EPHE_PATH", "/usr/share/libswe/ephe")
-swe.set_ephe_path(EPHE_PATH)
 
 VENUS_SIGN_COSMETICS = [
     {"sign": "牡羊座", "cosme": "ちゅるんとした透け感シアーレッドのリップティントカラー💄", "color": "ストロベリーピンク"},
@@ -78,7 +75,7 @@ def get_lucky_cosmetic():
     now = datetime.now()
     et = swe.julday(now.year, now.month, now.day, 12.0)
     res = swe.calc_ut(et, swe.VENUS)
-    lon = res[0]
+    lon = res
     sign_idx = int(lon // 30)
     if sign_idx >= 12: sign_idx = 11
     return VENUS_SIGN_COSMETICS[sign_idx]
@@ -91,7 +88,7 @@ def get_fortune(birth: NatalInput):
         natal_positions = {}
         for name, code in PLANETS.items():
             res = swe.calc_ut(birth_et, code)
-            natal_positions[name] = res[0]
+            natal_positions[name] = res
 
         start_date = datetime.now()
         hits = []
@@ -102,7 +99,7 @@ def get_fortune(birth: NatalInput):
             
             for t_name, t_code in PLANETS.items():
                 t_res = swe.calc_ut(et, t_code)
-                t_pos = t_res[0]
+                t_pos = t_res
                 
                 for n_name, n_pos in natal_positions.items():
                     diff = abs(t_pos - n_pos)

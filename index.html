@@ -131,7 +131,9 @@
             };
 
             try {
-                // ローカルテスト用にポート「8000」で通信するようにしています
+                // ⚠️【超重要！】
+                // Renderの公開が終わったら、下の「http://127.0.0.1:8000」の部分を
+                // あなたのRenderのURL（https://〜.onrender.com）に丸ごと書き換えてくださいね！
                 const response = await fetch('http://127.0.0', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
