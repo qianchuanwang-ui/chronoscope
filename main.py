@@ -12,6 +12,7 @@ from skyfield.api import Loader
 
 app = FastAPI()
 
+# 🔓 パソコン上(127.0.0.1)でもネット上でも、あらゆる通信を絶対に拒絶しない最強の設定
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -146,7 +147,7 @@ def get_fortune(birth: NatalInput):
         if hits:
             dates = [h["date"] for h in hits]
             labels = [h["title"] for h in hits]
-            ax.plot(dates, [1]*len(dates), "o", color="#FF94B7", markersize=12) # ここを修正しました！
+            ax.plot(dates, [1]*len(dates), "o", color="#FF94B7", markersize=12)
             for idx, label in enumerate(labels):
                 ax.annotate(label, (dates[idx], 1), textcoords="offset points", 
                             xytext=(0,15), ha='center', color="#555555", fontsize=9)
