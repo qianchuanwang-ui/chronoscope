@@ -8,21 +8,7 @@
   <body>
     <div id="app"></div>
     
-    <!-- 💡 ファイル名が何に変わっていても、自動で探して100%読み込む魔法のスクリプトです -->
-    <script type="module">
-      fetch('./assets/').then(res => res.text()).then(html => {
-        const match = html.match(/index-[A-Za-z0-9_]+\.js/);
-        const scriptName = match ? match[0] : 'index-CHBN2vfw.js';
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.src = './assets/' + scriptName;
-        document.body.appendChild(script);
-      }).catch(() => {
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.src = './assets/index-CHBN2vfw.js';
-        document.body.appendChild(script);
-      });
-    </script>
+    <!-- 🌟 最新の正しいファイル名「index-CBIpCPSq.js」だけを綺麗に読み込みます -->
+    <script type="module" src="./assets/index-CBIpCPSq.js"></script>
   </body>
 </html>
