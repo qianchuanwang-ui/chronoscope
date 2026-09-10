@@ -190,7 +190,7 @@ body {
   left: -200px;
   width: 140px;
   height: 140px;
-  background: url('chronospeed.png') no-repeat center/contain; /* 👈 スラッシュを消して相対パスに修正 */
+  background: url('https://github.com/reiastrologer/chronoscope/') no-repeat center/contain; /* 👈 スラッシュを消して相対パスに修正 */
   z-index: 9999;
   pointer-events: none;
 }
