@@ -235,7 +235,7 @@ body {
         <button id="calcBtn" 
                 class="btn-submit" 
                 style="margin-top:16px;">
-          大スキャン！
+          スキャン！
         </button>
       </div>
       <div id="resultSection" 
